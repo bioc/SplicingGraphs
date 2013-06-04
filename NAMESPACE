@@ -6,18 +6,17 @@ importFrom(igraph, graph.data.frame, get.data.frame, layout.kamada.kawai,
 
 
 import(BiocGenerics)
+
 import(IRanges)
 import(GenomicRanges)
+import(GenomicFeatures)
 
 importFrom(graph, nodeDataDefaults, nodeData,
                   edgeDataDefaults, edgeNames, edgeData)
 
 importFrom(Rgraphviz, agopen)
 
-import(GenomicFeatures)
-import(Rsamtools)
-
-exportClasses(.SplicingGraphGenes, SplicingGraphs)
+exportClasses(GeneModel, SplicingGraphs)
 
 
 ### - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -44,19 +43,19 @@ exportMethods(
 ###
 
 export(
-    ## sgedges-methods.R:
-    sgedges2,
-
     ## sgraph-methods.R:
-    sgraph2,
     slideshow,
+
+    ## rsgedgesByGene-methods.R:
+    rsgedges, sgedges2,
+    rsgraph, sgraph2,
 
     ## bubbles-methods.R:
     ASCODE2DESC,
 
-    ## countReads.R:
+    ## assignReads.R:
     assignReads,
-    countReads,
+    removeReads,
 
     ## toy_data.R:
     toy_genes_gff,
@@ -90,13 +89,21 @@ export(
     sgedges,
     sgnodes,
     outdeg, indeg,
-    uninformativeSSids,
 
     ## sgraph-methods.R:
     sgraph,
 
+    ## rsgedgesByGene-methods.R:
+    uninformativeSSids,
+    rsgedgesByTranscript,
+    rsgedgesByGene,
+
     ## bubbles-methods.R:
-    bubbles
+    bubbles,
+
+    ## countReads-methods.R:
+    reportReads,
+    countReads
 )
 
 ### Exactly the same list as above.
@@ -110,8 +117,12 @@ exportMethods(
     sgedges,
     sgnodes,
     outdeg, indeg,
-    uninformativeSSids,
     sgraph,
-    bubbles
+    uninformativeSSids,
+    rsgedgesByTranscript,
+    rsgedgesByGene,
+    bubbles,
+    reportReads,
+    countReads
 )
 

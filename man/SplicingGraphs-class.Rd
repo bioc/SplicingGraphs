@@ -1,14 +1,14 @@
 \name{SplicingGraphs-class}
 
-\alias{class:.SplicingGraphGenes}
-\alias{.SplicingGraphGenes-class}
+\alias{class:GeneModel}
+\alias{GeneModel-class}
 
 \alias{class:SplicingGraphs}
 \alias{SplicingGraphs-class}
 
-\alias{seqnames,.SplicingGraphGenes-method}
-\alias{strand,.SplicingGraphGenes-method}
-\alias{seqinfo,.SplicingGraphGenes-method}
+\alias{seqnames,GeneModel-method}
+\alias{strand,GeneModel-method}
+\alias{seqinfo,GeneModel-method}
 
 \alias{length,SplicingGraphs-method}
 \alias{names,SplicingGraphs-method}
@@ -62,33 +62,59 @@ SplicingGraphs(x, grouping=NULL, min.ntx=2, max.ntx=NA, check.introns=TRUE)
 
 \arguments{
   \item{x}{
-    A \link[GenomicRanges]{GRangesList} object containing the exons of one
-    or more genes grouped by transcript. Alternatively, \code{x} can be a
-    \link[GenomicFeatures]{TranscriptDb} object. See Details section below.
+    For \code{SplicingGraphs}: A \link[GenomicRanges]{GRangesList} object
+    containing the exons of one or more genes grouped by transcript.
+    Alternatively, \code{x} can be a \link[GenomicFeatures]{TranscriptDb}
+    object. See Details section below.
+
+    For the methods in the SplicingGraphs basic API: A SplicingGraphs object.
   }
   \item{grouping}{
     An optional object that represents the grouping by gene of the top-level
     elements (i.e. the transcripts) in \code{x}. See Details section
     below.
   }
-  \item{min.ntx}{
-    TODO
-  }
-  \item{max.ntx}{
-    TODO
+  \item{min.ntx, max.ntx}{
+    Single integers (or \code{NA} for \code{max.ntx}) specifying the minimum
+    and maximum number of transcripts a gene must have to be considered for
+    inclusion in the object returned by \code{SplicingGraphs}. A value of
+    \code{NA} for \code{max.ntx} means no maximum.
   }
   \item{check.introns}{
-    TODO
+    If \code{TRUE}, \code{SplicingGraphs} checks that, within each transcript,
+    exons are ordered from 5' to 3' with gaps of at least 1 nucleotide between
+    them.
   }
   \item{i, j, ..., drop}{
-    TODO
+    A SplicingGraphs object is a list-like object and therefore it can be
+    subsetted like a list. When subsetting with \code{[}, the result is
+    another SplicingGraphs object containing only the selected genes.
+    When subsetting with \code{[[}, the result is an \emph{unnamed}
+    \link[GenomicRanges]{GRangesList} object containing the exons grouped
+    by transcript.
+    Like for list, subsetting only accepts 1 argument (\code{i}). The
+    \code{drop} argument is ignored and trying to pass any additional
+    argument (to \code{j} or in \code{...}) will raise an error.
   }
   \item{recursive, use.names}{
-    TODO
+    A SplicingGraphs object is a list-like object and therefore it can be
+    unlisted with \code{unlist}. The result is a
+    \link[GenomicRanges]{GRangesList} object containing the exons
+    grouped by transcript. By default this object has names on it, and
+    the names are the gene ids. Note that because each element in this
+    object represents a transcript (and not a gene), the names are not
+    unique. If \code{use.names=FALSE} is used, the result has no names on it.
+    The \code{recursive} agument is ignored.
   }
 }
 
 \details{
+  The Splicing graph theory only applies to genes that have all the exons
+  of all their transcripts on the same chromosome and strand. In particular,
+  in its current form, the splicing graph theory cannot describe
+  trans-splicing events. The \code{SplicingGraphs} constructor will reject
+  genes that do not satisfy this.
+
   The first argument of the \code{SplicingGraphs} constructor, \code{x},
   can be either a \link[GenomicRanges]{GRangesList} object or a
   \link[GenomicFeatures]{TranscriptDb} object.
@@ -139,7 +165,25 @@ SplicingGraphs(x, grouping=NULL, min.ntx=2, max.ntx=NA, check.introns=TRUE)
 }
 
 \value{
-  TODO
+  For \code{SplicingGraphs}: a SplicingGraphs object with 1 element per gene.
+
+  For \code{length}: the number of genes in \code{x}, which is also the number
+  of splicing graphs in \code{x}.
+
+  For \code{names}: the gene ids. Note that the names on a SplicingGraphs
+  object are always unique and cannot be modified.
+
+  For \code{seqnames}: a named factor of the length of \code{x} containing
+  the name of the chromosome for each gene. 
+
+  For \code{strand}: a named factor of the length of \code{x} containing
+  the strand for each gene.
+
+  For \code{elementLengths}: the number of transcripts per gene.
+
+  For \code{seqinfo}: the seqinfo of the \link[GenomicRanges]{GRangesList}
+  or \link[GenomicFeatures]{TranscriptDb} object that was used to construct
+  the SplicingGraphs object.
 }
 
 \author{
@@ -163,22 +207,22 @@ SplicingGraphs(x, grouping=NULL, min.ntx=2, max.ntx=NA, check.introns=TRUE)
 }
 
 \seealso{
-  This man page is part of the SplicingGraphs package.
+  This man page is part of the \pkg{SplicingGraphs} package.
   Please see \code{?`\link{SplicingGraphs-package}`} for an overview of the
   package and for an index of its man pages.
 
   Other topics related to this man page and documented in other packages:
   \itemize{
     \item The \code{\link[GenomicFeatures]{exonsBy}} and
-          \code{\link[GenomicFeatures]{transcriptsBy}} functions, and the
-          \link[GenomicFeatures]{TranscriptDb} class in the GenomicFeatures
-          package.
+          \code{\link[GenomicFeatures]{transcriptsBy}} functions, and
+          the \link[GenomicFeatures]{TranscriptDb} class in the
+          \pkg{GenomicFeatures} package.
 
-    \item The \link[GenomicRanges]{GRangesList} class in the GenomicRanges
-          package.
+    \item The \link[GenomicRanges]{GRangesList} class in the
+          \pkg{GenomicRanges} package.
 
     \item The \link[IRanges]{IntegerList}, \link[IRanges]{CharacterList},
-          and \link[IRanges]{DataFrame} classes in the IRanges package.
+          and \link[IRanges]{DataFrame} classes in the \pkg{IRanges} package.
   }
 }
 
@@ -213,10 +257,9 @@ sg2
 
 ## Note that because SplicingGraphs objects have a slot that is an
 ## environment (for caching the bubbles), they cannot be compared with
-## identical() (will always return FALSE). A workaround is to unlist
-## them before comparison (see below for what unlist() does exactly on
-## a SplicingGraphs object):
-stopifnot(identical(unlist(sg2), unlist(sg)))
+## 'identical()' (will always return FALSE). 'all.equal()' should be
+## used instead:
+stopifnot(isTRUE(all.equal(sg2, sg)))
 
 ## 'sg' has 1 element per gene and 'names(sg)' gives the gene ids:
 length(sg)

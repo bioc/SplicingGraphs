@@ -4,11 +4,9 @@
 
 \alias{sgedges}
 \alias{sgedges,SplicingGraphs-method}
-\alias{sgedges,IntegerList-method}
-\alias{sgedges,data.frame-method}
 
 \alias{sgnodes}
-\alias{sgnodes,ANY-method}
+\alias{sgnodes,SplicingGraphs-method}
 \alias{sgnodes,IntegerList-method}
 \alias{sgnodes,data.frame-method}
 \alias{sgnodes,DataFrame-method}
@@ -20,12 +18,6 @@
 \alias{indeg}
 \alias{indeg,ANY-method}
 \alias{indeg,DataFrame-method}
-
-\alias{uninformativeSSids}
-\alias{uninformativeSSids,ANY-method}
-\alias{uninformativeSSids,DataFrame-method}
-
-\alias{sgedges2}
 
 
 \title{
@@ -42,11 +34,6 @@ sgedges(x, txweight=NULL, keep.dup.edges=FALSE)
 sgnodes(x)
 outdeg(x)
 indeg(x)
-
-sgedges2(x)
-
-## Related utility:
-uninformativeSSids(x)
 }
 
 \arguments{
@@ -57,7 +44,9 @@ uninformativeSSids(x)
     TODO
   }
   \item{keep.dup.edges}{
-    TODO
+    If \code{FALSE} (the default), then edges with the same \emph{global
+    edge id} are merged into a single row. Use \code{keep.dup.edges=TRUE}
+    if this merging should not be performed.
   }
 }
 
@@ -74,29 +63,37 @@ uninformativeSSids(x)
 }
 
 \seealso{
-  This man page is part of the SplicingGraphs package.
+  This man page is part of the \pkg{SplicingGraphs} package.
   Please see \code{?`\link{SplicingGraphs-package}`} for an overview of the
   package and for an index of its man pages.
 }
 
 \examples{
+## ---------------------------------------------------------------------
+## 1. Make SplicingGraphs object 'sg' from toy gene model (see
+##    '?SplicingGraphs')
+## ---------------------------------------------------------------------
 example(SplicingGraphs)  # create SplicingGraphs object 'sg'
 sg
 
 ## 'sg' has 1 element per gene and 'names(sg)' gives the gene ids.
 names(sg)
 
+## ---------------------------------------------------------------------
+## 2. Basic usage
+## ---------------------------------------------------------------------
 sgedges(sg["geneD"])
 sgnodes(sg["geneD"])
 outdeg(sg["geneD"])
 indeg(sg["geneD"])
 
-## Sanity checks:
+## ---------------------------------------------------------------------
+## 3. Sanity checks
+## ---------------------------------------------------------------------
 check_way1_vs_way2 <- function(res1, res2)
 {
     edges1 <- res1[res1$ex_or_in != "", ]  # remove artificial edges
     edges2 <- mcols(unlist(res2, use.names=FALSE))
-    edges2 <- edges2[ , -1]  # remove "sgedge_id" col (global edge id)
     stopifnot(identical(edges1, edges2))
 }
 

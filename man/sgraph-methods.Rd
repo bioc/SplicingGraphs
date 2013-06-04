@@ -8,8 +8,6 @@
 \alias{sgraph,DataFrame-method}
 \alias{sgraph,igraph-method}
 
-\alias{sgraph2}
-
 \alias{plot,SplicingGraphs,ANY-method}
 \alias{slideshow}
 
@@ -25,11 +23,10 @@
 
 \usage{
 sgraph(x, keep.dup.edges=FALSE, tx_id.as.edge.label=FALSE, as.igraph=FALSE)
-sgraph2(x, tx_id.as.edge.label=FALSE, as.igraph=FALSE)
 
 ## PLotting:
 
-\S4method{plot}{SplicingGraphs,ANY}(x, y)
+\S4method{plot}{SplicingGraphs,ANY}(x, y, ...)
 slideshow(x)
 }
 
@@ -38,16 +35,23 @@ slideshow(x)
     TODO
   }
   \item{keep.dup.edges}{
-    TODO
+    If \code{FALSE} (the default), then edges with the same \emph{global
+    edge id} are merged together. Use \code{keep.dup.edges=TRUE} if this
+    merging should not be performed.
   }
   \item{tx_id.as.edge.label}{
-    TODO
+    Whether or not to use the transcript ids as edge labels.
   }
   \item{as.igraph}{
     TODO
   }
   \item{y}{
     TODO
+  }
+  \item{...}{
+    Additional arguments. \code{plot} passes these to
+    \code{plot,Ragraph,ANY-method} for use in, e.g., adding a
+    \code{main} title to the plot.
   }
 }
 
@@ -64,7 +68,7 @@ slideshow(x)
 }
 
 \seealso{
-  This man page is part of the SplicingGraphs package.
+  This man page is part of the \pkg{SplicingGraphs} package.
   Please see \code{?`\link{SplicingGraphs-package}`} for an overview of the
   package and for an index of its man pages.
 }

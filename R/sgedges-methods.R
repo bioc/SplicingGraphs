@@ -22,7 +22,7 @@
 ### transcript) for a given gene. Should have been obtained thru the txpath()
 ### accessor. Returns a 4-col (or 5-col if 'txweight' is supplied) data.frame
 ### representing the splicing graph.
-.make_sgedges0_from_txpath <- function(txpath, txweight=NULL)
+.make_sgedges0_from_txpath <- function(txpath, gene_id, txweight=NULL)
 {
     if (!is.null(txweight)) {
         if (!is.numeric(txweight))
@@ -40,6 +40,8 @@
                                      "an odd number of splicing site ids")
                             from <- c("R", txpath_i)
                             to <- c(txpath_i, "L")
+                            sgedge_id <- make_global_sgedge_id(gene_id,
+                                                               from, to)
                             nexons <- txpath_i_len %/% 2L
                             if (nexons == 0L) {
                                 ex_or_in <- EX_OR_IN_LEVELS[3L]
@@ -55,6 +57,7 @@
                                                levels=EX_OR_IN_LEVELS)
                             data.frame(from=from,
                                        to=to,
+                                       sgedge_id=sgedge_id,
                                        ex_or_in=ex_or_in,
                                        stringsAsFactors=FALSE)
                         })
@@ -63,7 +66,7 @@
     tx_id <- names(txpath)
     if (is.null(tx_id))
         tx_id <- seq_along(txpath)
-    tx_id <- rep.int(factor(tx_id, levels=tx_id), nedges_per_tx)
+    tx_id <- rep.int(tx_id, nedges_per_tx)
     sgedges0$tx_id <- tx_id
     if (!is.null(txweight))
         sgedges0$txweight <- rep.int(txweight, nedges_per_tx)
@@ -72,17 +75,15 @@
 
 ### Collapse the duplicated edges in 'sgedges0' into a DataFrame.
 ### We use a DataFrame instead of a data.frame because we want to store
-### the tx_id col in a CompressedFactorList (even though this container
-### doesn't formally exist and a CompressedIntegerList is actually what's
-### being used).
+### the "tx_id" col in a CharacterList.
 .make_sgedges_from_sgedges0 <- function(sgedges0, ex_hits=NULL, in_hits=NULL)
 {
     from <- sgedges0[ , "from"]
     to <- sgedges0[ , "to"]
+    sgedge_id <- sgedges0[ , "sgedge_id"]
     ex_or_in <- sgedges0[ , "ex_or_in"]
     tx_id <- sgedges0[ , "tx_id"]
-    edges <- paste(from, to, sep="~")
-    sm <- match(edges, edges)
+    sm <- match(sgedge_id, sgedge_id)
     if (!all(ex_or_in == ex_or_in[sm]))
         stop("invalid splicing graph")
     is_not_dup <- sm == seq_along(sm)
@@ -133,11 +134,11 @@
         from_to_colnames <- c("end_SSid", "start_SSid")
     }
     ex_mcols <- mcols(exons)
-    ex_colnames <- colnames(ex_mcols)
-    hits_idx <- grep("hits$", ex_colnames)
-    hits_colnames <- ex_colnames[hits_idx]
-    hits_colnames <- c(from_to_colnames, hits_colnames)
-    exon_hits <- ex_mcols[ , hits_colnames, drop=FALSE]
+    ex_mcolnames <- colnames(ex_mcols)
+    hits_mcol_idx <- grep("hits$", ex_mcolnames)
+    hits_mcolnames <- ex_mcolnames[hits_mcol_idx]
+    hits_mcolnames <- c(from_to_colnames, hits_mcolnames)
+    exon_hits <- ex_mcols[ , hits_mcolnames, drop=FALSE]
     colnames(exon_hits)[1:2] <- c("from", "to")
     exon_hits
 }
@@ -160,10 +161,10 @@
     #}
     in_mcols <- mcols(introns)
     in_colnames <- colnames(in_mcols)
-    hits_idx <- grep("hits$", in_colnames)
-    hits_colnames <- in_colnames[hits_idx]
-    #hits_colnames <- c(from_to_colnames, hits_colnames)
-    intron_hits <- in_mcols[ , hits_colnames, drop=FALSE]
+    hits_mcol_idx <- grep("hits$", in_colnames)
+    hits_mcolnames <- in_colnames[hits_mcol_idx]
+    #hits_mcolnames <- c(from_to_colnames, hits_mcolnames)
+    intron_hits <- in_mcols[hits_mcolnames]
     #colnames(intron_hits)[1:2] <- c("from", "to")
     intron_hits
 }
@@ -178,14 +179,14 @@ setMethod("sgedges", "SplicingGraphs",
     {
         if (!isTRUEorFALSE(keep.dup.edges))
             stop("'keep.dup.edges' must be TRUE or FALSE")
-        txpath <- txpath(x)
+        txpath <- txpath(x)  # fails if length(x) != 1
+        gene_id <- names(x)
         if (is.null(txweight))
             txweight <- txweight(x)
+        sgedges0 <- .make_sgedges0_from_txpath(txpath, gene_id,
+                                               txweight=txweight)
         if (keep.dup.edges)
-            return(sgedges(txpath, txweight=txweight,
-                                   keep.dup.edges=keep.dup.edges))
-        sgedges0 <- sgedges(txpath, txweight=txweight,
-                                    keep.dup.edges=TRUE)
+            return(sgedges0)
         exon_hits <- .extract_sgedges_exon_hits(x)
         intron_hits <- .extract_sgedges_intron_hits(x)
         ## FIXME: Once .extract_sgedges_intron_hits() is fixed, merge the
@@ -198,28 +199,6 @@ setMethod("sgedges", "SplicingGraphs",
     }
 )
 
-setMethod("sgedges", "IntegerList",
-    function(x, txweight=NULL, keep.dup.edges=FALSE)
-    {
-        sgedges0 <- .make_sgedges0_from_txpath(x, txweight=txweight)
-        sgedges(sgedges0, keep.dup.edges=keep.dup.edges)
-    }
-)
-
-setMethod("sgedges", "data.frame",
-    function(x, txweight=NULL, keep.dup.edges=FALSE)
-    {
-        if (!is.null(txweight))
-            stop("the 'txweight' arg is not supported ",
-                 "when 'x' is a data.frame")
-        if (!isTRUEorFALSE(keep.dup.edges))
-            stop("'keep.dup.edges' must be TRUE or FALSE")
-        if (keep.dup.edges)
-            return(x)  # no-op
-        .make_sgedges_from_sgedges0(x)
-    }
-)
-
 
 ### - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ### sgnodes() accessor
@@ -229,7 +208,7 @@ setGeneric("sgnodes", signature="x",
     function(x) standardGeneric("sgnodes")
 )
 
-setMethod("sgnodes", "ANY",
+setMethod("sgnodes", "SplicingGraphs",
     function(x)
     {
         txpath <- txpath(x)
@@ -270,7 +249,8 @@ setMethod("outdeg", "DataFrame",
     function(x)
     {
         sgnodes <- sgnodes(x)
-        ans <- countMatches(sgnodes, x[ , "from"])
+        m <- match(x[ , "from"], sgnodes)
+        ans <- tabulate(m, nbins=length(sgnodes))
         names(ans) <- sgnodes
         ans
     }
@@ -292,109 +272,10 @@ setMethod("indeg", "DataFrame",
     function(x)
     {
         sgnodes <- sgnodes(x)
-        ans <- countMatches(sgnodes, x[ , "to"])
+        m <- match(x[ , "to"], sgnodes)
+        ans <- tabulate(m, nbins=length(sgnodes))
         names(ans) <- sgnodes
         ans
     }
 )
-
-
-### - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-### uninformativeSSids() extractor
-###
-### Uninformative splicing sites are nodes in the splicing graph for which 
-### outdeg and indeg are 1. A straightforward implementation of
-### uninformativeSSids() would be:
-###
-###   uninformativeSSids <- function(x)
-###   {
-###       is_uninfo <- outdeg(sg) == 1L & indeg(sg) == 1L
-###       names(is_uninfo)[is_uninfo]
-###   }
-###
-### but the implementation below is about 2x faster.
-###
-
-setGeneric("uninformativeSSids", signature="x",
-    function(x) standardGeneric("uninformativeSSids")
-)
-
-setMethod("uninformativeSSids", "ANY",
-    function(x)
-    {
-        sgedges <- sgedges(x)
-        uninformativeSSids(sgedges)
-    }
-)
-
-setMethod("uninformativeSSids", "DataFrame",
-    function(x)
-    {
-        from <- x[ , "from"]
-        to <- x[ , "to"]
-        from1_SSids <- setdiff(from, from[duplicated(from)])
-        to1_SSids <- setdiff(to, to[duplicated(to)])
-        intersect(from1_SSids, to1_SSids)
-    }
-)
-
-
-### - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-### sgedges2() extractor
-###
-### Same as sgedges() except that uninformative nodes (i.e. SSids) are removed.
-###
-
-### 'sgedges' must be a DataFrame as returned by:
-###     sgedges( , keep.dup.edges=FALSE)
-.remove_uninformative_SSids <- function(sgedges)
-{
-    ex_or_in <- sgedges[ , "ex_or_in"]
-    ex_or_in_levels <- levels(ex_or_in)
-    if (!identical(ex_or_in_levels, EX_OR_IN_LEVELS))
-        stop("Malformed input.\n",
-             "  In the input data.frame (or DataFrame) representing the ",
-             "original splicing graph, the \"ex_or_in\" column has invalid ",
-             "levels. Could it be that it was obtained by a previous call ",
-             "to sgedges2()?")
-    levels(ex_or_in) <- EX_OR_IN_LEVELS2
-    uninformative_SSids <- uninformativeSSids(sgedges)
-    if (length(uninformative_SSids) == 0L)
-        return(sgedges)
-    from <- sgedges[ , "from"]
-    to <- sgedges[ , "to"]
-    tx_id <- sgedges[ , "tx_id"]
-    idx1 <- match(uninformative_SSids, from)
-    idx2 <- match(uninformative_SSids, to)
-    ## 2 sanity checks.
-    if (!identical(unname(tx_id[idx1]), unname(tx_id[idx2])))
-        stop("Malformed input.\n",
-             "  In the input data.frame (or DataFrame) representing the ",
-             "original splicing graph, the 2 rows containing a given ",
-             "uninformative splicing site id must contain the same tx_id.",
-             "Could it be that the \"tx_id\" column was manually altered ",
-             "before the data.frame (or DataFrame) was passed to ",
-             "sgedges2()?")
-    if (!all(idx1 == idx2 + 1L))
-        stop("Malformed input.\n",
-             "  In the input data.frame (or DataFrame) representing the ",
-             "original splicing graph, each uninformative splicing site ",
-             "id must appear in 2 consecutive rows (first in the \"to\" ",
-             "column, then in the \"from\" column. Could it be that the ",
-             "rows were subsetted before the data.frame (or DataFrame) ",
-             "was passed to sgedges2()?")
-    from <- from[-idx1]
-    to <- to[-idx2]
-    ex_or_in[idx1] <- EX_OR_IN_LEVELS2[4L]
-    ex_or_in <- ex_or_in[-idx2]
-    tx_id <- tx_id[-idx1]
-    DataFrame(from=from, to=to, ex_or_in=ex_or_in, tx_id=tx_id)
-}
-
-sgedges2 <- function(x)
-{
-    if (!is(x, "DataFrame"))
-        x <- sgedges(x)
-    .remove_uninformative_SSids(x)
-}
 

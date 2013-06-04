@@ -60,7 +60,7 @@ txweight(x) <- value
 }
 
 \seealso{
-  This man page is part of the SplicingGraphs package.
+  This man page is part of the \pkg{SplicingGraphs} package.
   Please see \code{?`\link{SplicingGraphs-package}`} for an overview of the
   package and for an index of its man pages.
 
@@ -69,14 +69,14 @@ txweight(x) <- value
     \item The \link[GenomicRanges]{GRangesList},
           \link[GenomicRanges]{GappedAlignments}, and
           \link[GenomicRanges]{GappedAlignmentPairs} classes
-          in the GenomicRanges package.
+          in the \pkg{GenomicRanges} package.
 
     \item \link[GenomicRanges]{findOverlaps-methods} and
           \link[GenomicRanges]{encodeOverlaps-methods} in the
-          GenomicRanges package.
+          \pkg{GenomicRanges} package.
 
     \item The \code{\link[Rsamtools]{ScanBamParam}} function in the
-          Rsamtools package.
+          \pkg{Rsamtools} package.
   }
 }
 
@@ -133,14 +133,15 @@ plot(sgraph(sg["geneD"], tx_id.as.edge.label=TRUE, as.igraph=TRUE))
 ## Note that the code we use to find the unambiguous compatible hits
 ## uses findOverlaps() and encodeOverlaps() defined in the IRanges and
 ## GenomicRanges packages. It only requires that the transcripts are
-## represented as a GRangesList object and the reads as a
-## GappedAlignments (single-end) or GappedAlignmentPairs (paired-end)
-## object, and therefore is not specific to SplicingGraphs.
+## represented as a GRangesList object and the reads as a GappedAlignments
+## (single-end) or GappedAlignmentPairs (paired-end) object, and therefore is
+## not specific to SplicingGraphs.
 
 ## First we load toy reads (single-end) from a BAM file. We filter out
 ## secondary alignments, reads not passing quality controls, and PCR or
 ## optical duplicates (see ?scanBamFlag in the Rsamtools package for
 ## more information):
+library(Rsamtools)
 flag0 <- scanBamFlag(isNotPrimaryRead=FALSE,
                      isNotPassingQualityControls=FALSE,
                      isDuplicate=FALSE)
@@ -163,12 +164,12 @@ ov0 <- findOverlaps(grl, ex_by_tx, ignore.strand=TRUE)
 
 ## Encode the overlaps (this compare the fragmentation of the reads with
 ## the splicing of the transcripts):
-ovenc <- encodeOverlaps(grl, ex_by_tx, hits=ov0,
-                        flip.query.if.wrong.strand=TRUE)
-is_comp <- isCompatibleWithSplicing(ovenc)
+ovenc0 <- encodeOverlaps(grl, ex_by_tx, hits=ov0,
+                         flip.query.if.wrong.strand=TRUE)
+ov0_is_compat <- isCompatibleWithSplicing(ovenc0)
 
 ## Keep compatible overlaps only:
-ov1 <- ov0[is_comp]
+ov1 <- ov0[ov0_is_compat]
 
 ## Only keep overlaps that are compatible with exactly 1 transcript:
 ov2 <- ov1[queryHits(ov1) \%in\% which(countQueryHits(ov1) == 1L)]
